@@ -1,38 +1,42 @@
+#include <SoftwareSerial.h>
 #include "HX711.h"
 
-// Stepper Pins
-const int stepPin = 4;
-const int dirPin = 5;
-
-// Load Cell Pins
-const int doutPin = 2;
-const int sckPin = 3;
-
+// Nextion on D2(RX) and D3(TX)
+SoftwareSerial nextion(2, 3); 
 HX711 scale;
-float targetWeight = 150.0; // Target in grams
+
+// Pins for A4988
+const int stepPin = 6;
+const int dirPin = 7;
+
+float targetWeight = 0; // Set this via Nextion
 
 void setup() {
+  nextion.begin(9600);
+  scale.begin(4, 5); // DT, SCK
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
-  
-  scale.begin(doutPin, sckPin);
-  scale.set_scale(-405.0); // Replace with your calibration factor
-  scale.tare(); 
 }
 
 void loop() {
-  float currentWeight = scale.get_units(5); // Read average weight
+  // 1. Check if Nextion sent a command (e.g., "Start Feeding")
+  if (nextion.available()) {
+    // Logic to parse the button press from the screen
+  }
 
-  if (currentWeight < targetWeight) {
-    digitalWrite(dirPin, HIGH); // Set direction
-    
-    // One "Step"
+  // 2. Dispensing Logic
+  float currentWeight = scale.get_units(5);
+  
+  if (isFeeding && currentWeight < targetWeight) {
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(800); // Adjust for speed (lower = faster)
+    delayMicroseconds(800);
     digitalWrite(stepPin, LOW);
     delayMicroseconds(800);
+    
+    // 3. Update Nextion Progress
+    // Only update every 500ms to avoid lagging the serial port
+    updateNextionWeight(currentWeight); 
   } else {
-    // Target reached! Do nothing until next feeding time
-    delay(1000); 
+    isFeeding = false;
   }
 }
