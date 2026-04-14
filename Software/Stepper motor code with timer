@@ -1,0 +1,42 @@
+#include <Wire.h>
+#include <RTClib.h>
+#include <AccelStepper.h>
+
+// 1. Setup the Timer (RTC)
+RTC_DS3231 rtc;
+
+// 2. Setup the Motor Pins (Based on your photo)
+const int stepPin = 3; // Purple wire
+const int dirPin = 2;  // Orange wire
+
+// 3. Define the stepper instance (This fixes your 'not declared' error)
+AccelStepper stepper(1, stepPin, dirPin); 
+
+void setup() {
+  Serial.begin(9600);
+
+  // Initialize the Timer
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+  }
+
+  // Set motor speed and acceleration
+  // We're using slow values to stop the jiggling
+  stepper.setMaxSpeed(200); 
+  stepper.setAcceleration(50);
+}
+
+void loop() {
+  // Get the current time from the RTC
+  DateTime now = rtc.now();
+
+  // EXPERIMENT: Make the motor move for the first 30 seconds of every minute
+  if (now.second() < 30) {
+    stepper.moveTo(10000); // Set a far target
+    stepper.run();         // Move toward it
+  } else {
+    stepper.stop();        // Stop for the rest of the minute
+  }
+  
+  // Note: stepper.run() needs to be called as fast as possible to keep it smooth
+}
