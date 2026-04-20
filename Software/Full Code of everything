@@ -1,0 +1,69 @@
+#include <Wire.h>
+#include "RTClib.h"
+#include "HX711.h"
+
+// A4988 Pins
+const int stepPin = 3;  // Orange wire
+const int dirPin = 2;   // Purple wire
+
+// HX711 Pins (Weight Sensor)
+const int LOADCELL_DOUT_PIN = A3;
+const int LOADCELL_SCK_PIN = A2;
+
+RTC_DS3231 rtc;
+HX711 scale;
+
+// --- CALIBRATION FACTOR ---
+// You will need to change this number to calibrate your scale!
+float calibration_factor = -7050; 
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Setup Motor
+  pinMode(stepPin, OUTPUT);
+  pinMode(dirPin, OUTPUT);
+
+  // Setup RTC
+  if (!rtc.begin()) {
+    Serial.println("RTC not found!");
+  }
+
+  // Setup Scale
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  scale.set_scale(calibration_factor); 
+  scale.tare(); // Resets the scale to 0 on startup
+  
+  Serial.println("System Ready.");
+}
+
+void loop() {
+  DateTime now = rtc.now();
+  
+  // Read Weight
+  float weight = scale.get_units(5); // Average of 5 readings
+  if (weight < 0) weight = 0.00;     // Ignore tiny negative drift
+
+  // Print Data
+  Serial.print("Time: ");
+  Serial.print(now.hour()); Serial.print(":"); Serial.print(now.minute());
+  Serial.print(" | Weight: ");
+  Serial.print(weight, 2); 
+  Serial.println(" units");
+
+  // LOGIC: If it's time AND the weight is low, move the motor
+  // Example: Move if it's the first 5 seconds of the minute AND weight < 100
+  if (now.second() >= 0 && now.second() < 5 && weight < 100.0) {
+    runMotor();
+  }
+
+  delay(100); 
+}
+
+void runMotor() {
+  digitalWrite(dirPin, HIGH); 
+  digitalWrite(stepPin, HIGH);
+  delayMicroseconds(1000); 
+  digitalWrite(stepPin, LOW);
+  delayMicroseconds(200);
+}
