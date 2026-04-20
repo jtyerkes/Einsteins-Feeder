@@ -1,0 +1,23 @@
+void loop() {
+  DateTime now = rtc.now();
+
+  // 1. Define your specific time (6:45 PM is 18:45)
+  int targetHour = 18;
+  int targetMinute = 45;
+
+  // 2. Check if the time matches
+  if (now.hour() == targetHour && now.minute() == targetMinute) {
+    // Move the motor to a specific position (e.g., 2000 steps)
+    stepper.moveTo(2000); 
+  } else {
+    // Optional: Reset the position for the next day if you want it 
+    // to happen again, or simply stop the motor.
+    if (stepper.distanceToGo() == 0) {
+      // This stops the motor from constantly trying to move
+      stepper.setCurrentPosition(0); 
+    }
+  }
+
+  // 3. Keep the motor moving toward the target
+  stepper.run(); 
+}
